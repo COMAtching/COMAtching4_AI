@@ -1,5 +1,6 @@
 import os
 import sys
+from dotenv import load_dotenv
 import openai
 
 # ✅ 현재 스크립트의 경로를 기준으로 sys.path에 추가하여 import 문제 해결
@@ -7,8 +8,12 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from prompts import *
 
-# GPT-4o 모델 사용 시 아래와 같이 설정
-openai.api_key = ''
+# ✅ .env.txt 파일 로드
+env_path = os.path.join(os.path.dirname(__file__), '.env.txt')
+load_dotenv(dotenv_path=env_path)
+
+# ✅ 환경변수에서 API 키 불러오기
+openai.api_key = os.getenv("OPENAI_API_KEY")
 # openai.api_key = "YOUR_API_KEY"
 
 def manager_agent(extracted_info, user_profile, extractor_message):
