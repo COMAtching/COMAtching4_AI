@@ -1,20 +1,3 @@
-# import argparse
-#
-#
-# def get_args():
-#     """
-#     명령줄 인자로 --uuid, --subcategory, --mbti_weight, --contact_weight, --hobby_weight를 받아옵니다.
-#     기본값은 가중치 인자들이 모두 1.0입니다.
-#     """
-#     parser = argparse.ArgumentParser(description="UUID, 소분류 및 가중치 인자를 입력받습니다.")
-#     parser.add_argument('--uuid', type=str, required=True, help='사용자 UUID')
-#     parser.add_argument('--subcategory', type=str, required=True, help="소분류 데이터 (예: '축구, 피파, 피트니스')")
-#     parser.add_argument('--m', type=float, default=1.0, help='mbti_weight')
-#     parser.add_argument('--c', type=float, default=1.0, help='contact_weight')
-#     parser.add_argument('--h', type=float, default=1.0, help='hobby_weight')
-#
-#     args = parser.parse_args()
-#     return args
 import argparse
 
 

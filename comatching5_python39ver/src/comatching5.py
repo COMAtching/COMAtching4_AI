@@ -3,6 +3,7 @@ import sys
 import time
 import uuid
 import pandas as pd
+from typing import Optional
 from dotenv import load_dotenv
 
 # 현재 디렉토리를 sys.path에 추가하여 모듈 인식 문제 해결
@@ -12,13 +13,14 @@ from args import get_args
 from functions import create_user_profile, filter_data, preprocess_for_cosine
 from models import CosineSimilarityRecommender
 from comatching_category_classification import classify_category, classify_categories
+from utils import GPTClassifier
 
 # 환경 변수에서 API 키 로드
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
 
 # 데이터 경로 설정 (엑셀 파일)
-DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "comatching_ai_csv.xlsx")
+DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "comatching_ai_csv1.csv")
 
 
 def main():
@@ -41,18 +43,23 @@ def main():
     else:
         subcategories = [subcategory]
 
-    # 3) 대분류 매핑: 여러 소분류일 경우 분리해서 처리
+    # ───────── GPT 분류기 준비 ─────────
+    gpt = GPTClassifier(api_key=API_KEY) if API_KEY else None  # ★ 여기 추가/변경
+
+    # 3) 대분류 매핑
     t0 = time.time()
     if len(subcategories) > 1:
-        uuid_val, big_category = classify_categories(user_uuid, subcategories, API_KEY)
+        big_category = classify_categories(user_uuid, subcategories, gpt)  # ← gpt
     else:
-        uuid_val, big_category = classify_category(user_uuid, subcategories[0], API_KEY)
+        big_category = classify_category(user_uuid, subcategories[0], gpt)  # ← gpt
+    uuid_val = user_uuid
+    t                                                   
     t1 = time.time()
     print(f"[2] 대분류 매핑 소요 시간: {t1 - t0:.4f}초")
 
     # 4) 엑셀 파일 불러오기 (후보 데이터)
     t0 = time.time()
-    df = pd.read_excel(DATA_PATH, header=None)
+    df = pd.read_csv(DATA_PATH, header=None)
     t1 = time.time()
     print(f"[3] 엑셀 불러오기 소요 시간: {t1 - t0:.4f}초")
 
