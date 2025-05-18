@@ -1,7 +1,8 @@
 import os
 import sys
+from typing import Optional
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 
 # .env 파일 로드
 load_dotenv()
@@ -11,8 +12,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from prompts import *
 
-# OpenAI API 키 설정
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# OpenAI 클라이언트 초기화
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def manager_agent(extracted_info, user_profile, extractor_message):
     """
@@ -32,19 +33,16 @@ def manager_agent(extracted_info, user_profile, extractor_message):
     ]
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
             temperature=0
         )
-        evaluation = response["choices"][0]["message"]["content"].strip()
-
-        # ✅ 기존 문자열 반환 대신 JSON 형태로 변환하여 반환
+        evaluation = response.choices[0].message.content.strip()
         return {
             "subcategory": extracted_info,
             "bigcategory": evaluation
         }
-
     except Exception as e:
         print("오류 발생:", e)
         return {"error": str(e)}

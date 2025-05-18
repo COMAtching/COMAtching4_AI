@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import argparse  # ✅ CLI 실행 지원 추가
 import json  # ✅ 변환된 데이터를 JSON으로 변환
+from typing import Optional
 from sklearn.metrics.pairwise import cosine_similarity
 import os
 import sys
@@ -17,7 +18,7 @@ class CosineSimilarityRecommender:
     def __init__(self):
         pass
 
-    def recommend(self, user_profile, data, mbti_weight, contact_weight, hobby_weight, top_k=5):
+    def recommend(self, user_profile, data: Optional[dict], mbti_weight, contact_weight, hobby_weight, top_k=5):
         """
         user_profile: {'mbtiOption': ..., 'contactfrequencyOption': ..., 'bigHobbyOption': ...}
         data: {
@@ -29,7 +30,7 @@ class CosineSimilarityRecommender:
         if data is None:
             return []
 
-            # ✅ df가 딕셔너리라면 Pandas DataFrame으로 변환
+        # ✅ df가 딕셔너리라면 Pandas DataFrame으로 변환
         if isinstance(data['df'], dict):
             data['df'] = pd.DataFrame(data['df'])
 
@@ -125,7 +126,7 @@ class NeuralCF:
     def __init__(self):
         pass
 
-    def recommend(self, user_profile, data, top_n=5):
+    def recommend(self, user_profile, data: Optional[dict], top_n=5):
         """
         data['df']: user_id, item_id, rating
         data['user_to_idx']: 사용자 -> index 매핑

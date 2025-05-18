@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 import argparse
+from typing import Optional
 
 """
 1) 유저 프로필 생성 함수
@@ -44,7 +45,6 @@ def map_small_to_big(hobby: str, big_dict: dict) -> str:
     """
     개별 소분류 취미(hobby)에 대해
     어떤 대분류(big category)에 속해 있는지 찾아서 그 카테고리명을 반환.
-    만약 어느 대분류에도 속하지 않으면 빈 문자열("")을 반환.
     """
     for big_cat, small_list in big_dict.items():
         if hobby in small_list:
@@ -295,11 +295,10 @@ def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight):
     return " ".join(text_tokens).strip()
 
 
-
 def preprocess_for_cosine(filtered_df: pd.DataFrame,
                           mbti_weight: float,
                           contact_weight: float,
-                          hobby_weight: float):
+                          hobby_weight: float) -> Optional[dict]:
     """
     코사인 유사도 전처리
     - MBTI, 연락빈도, 대분류 취미만 사용 -> weighted_text로 TF-IDF
