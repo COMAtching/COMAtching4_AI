@@ -8,7 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError, AuthenticationError
@@ -45,7 +45,7 @@ class GPTClassifier:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model_name: str = "gpt-4o",
         temperature: float = 0.0,
     ) -> None:

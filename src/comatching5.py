@@ -3,7 +3,6 @@ import sys
 import time
 import uuid
 import pandas as pd
-from typing import Optional
 from dotenv import load_dotenv
 
 # 현재 디렉토리를 sys.path에 추가하여 모듈 인식 문제 해결
@@ -53,7 +52,6 @@ def main():
     else:
         big_category = classify_category(user_uuid, subcategories[0], gpt)  # ← gpt
     uuid_val = user_uuid
-
     t1 = time.time()
     print(f"[2] 대분류 매핑 소요 시간: {t1 - t0:.4f}초")
 
@@ -106,7 +104,7 @@ def main():
     # 9) 최종 추천 결과 출력
     print("\n===== Cosine Similarity 추천 결과 =====")
     for idx, rec in enumerate(recommendations, 1):
-        rec_uuid = str(uuid.uuid4())
+        rec_uuid = rec.get("uuid")
         print(f"[{idx}] uuid: {rec_uuid}")
         print(
             f"   성별: {rec.get('gender', 'N/A')}, MBTI: {rec.get('mbti', 'N/A')}, 나이: {rec.get('age', 'N/A')}, 연락 빈도: {rec.get('contactFrequencyOption', 'N/A')}")

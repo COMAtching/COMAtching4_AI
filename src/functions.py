@@ -1,10 +1,8 @@
 # src/functions.py
-
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 import argparse
-from typing import Optional
 
 """
 1) 유저 프로필 생성 함수
@@ -45,6 +43,7 @@ def map_small_to_big(hobby: str, big_dict: dict) -> str:
     """
     개별 소분류 취미(hobby)에 대해
     어떤 대분류(big category)에 속해 있는지 찾아서 그 카테고리명을 반환.
+    만약 어느 대분류에도 속하지 않으면 빈 문자열("")을 반환.
     """
     for big_cat, small_list in big_dict.items():
         if hobby in small_list:
@@ -151,10 +150,6 @@ def convert_hobbies_discard_unmatched(filtered_df: pd.DataFrame, user_profile: d
         for small_hobby in split_hobbies:
             big_cat = map_small_to_big(small_hobby, BIG_CATEGORY_DICT)
             if big_cat == "":
-                # 매핑 불가 소분류는 버리거나(여기서는 버리지 않고 GPT용으로 남길 수도 있음)
-                # 여기서는 "뽑는 사람"이므로 GPT agent에 넘길 거라면 그대로 두거나
-                # 만약 요구사항대로 "버리진 않고 GPT agent에 넘긴다"면 아래 continue 없이 append
-                # 이 부분은 요구사항에 따라 구현
                 continue
             else:
                 converted_list.append(big_cat)
@@ -169,6 +164,7 @@ def create_user_profile(df: pd.DataFrame) -> dict:
     유저 프로필 생성
     - 0행(인덱스 이름들), 1행(해당 값) 파악 -> user_profile dict
     - MBTI를 4글자로 정제
+    - myAge가 존재하고 age가 비어 있다면 age에 복사
     """
     # 0행, 1행
     indices = df.iloc[0].tolist()
@@ -184,6 +180,10 @@ def create_user_profile(df: pd.DataFrame) -> dict:
     if mbti_raw:
         cleaned_mbti = mbti_raw.replace(",", "").replace(" ", "")
         user_profile['mbtiOption'] = cleaned_mbti
+
+    # (추가) myAge → age 매핑
+    if user_profile.get('myAge') and not user_profile.get('age'):
+        user_profile['age'] = user_profile['myAge']
 
     return user_profile
 
@@ -226,12 +226,12 @@ def filter_data(df: pd.DataFrame, user_profile: dict) -> pd.DataFrame:
         filtered_df = filtered_df[filtered_df['major'] != user_major]
 
     # 나이필터링 (ageOption: OLDER/YOUNGER/EQUAL)
-    # - user_profile['age']가 실제 숫자(또는 문자열)로 존재한다고 가정
-    # - filtered_df['age']도 숫자 변환 가능해야 함
-    user_age = user_profile.get('age', None)  # 예: "20"
+    # age가 없으면 myAge 사용
+    user_age_val = user_profile.get('age') or user_profile.get('myAge')
     age_option = user_profile.get('ageOption', "").upper()  # OLDER/YOUNGER/EQUAL
-    if user_age and str(user_age).isdigit():
-        user_age_int = int(user_age)
+
+    if user_age_val and str(user_age_val).isdigit():
+        user_age_int = int(user_age_val)
         filtered_df['age'] = filtered_df['age'].astype(int)  # 형변환
         if age_option == 'OLDER':
             filtered_df = filtered_df[filtered_df['age'] > user_age_int]
@@ -267,6 +267,7 @@ def preprocess_hobby(user_profile: dict) -> dict:
  - 나이는 사용하지 않고, MBTI / 연락빈도 / (GPT 결과) 대분류 취미만 사용
 """
 
+
 def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight):
     """
     - 대분류 취미(bigHobby)가 여러 번 등장해도, set()으로 중복 제거하여 한 번만 반영.
@@ -298,7 +299,7 @@ def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight):
 def preprocess_for_cosine(filtered_df: pd.DataFrame,
                           mbti_weight: float,
                           contact_weight: float,
-                          hobby_weight: float) -> Optional[dict]:
+                          hobby_weight: float):
     """
     코사인 유사도 전처리
     - MBTI, 연락빈도, 대분류 취미만 사용 -> weighted_text로 TF-IDF

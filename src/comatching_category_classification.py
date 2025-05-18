@@ -6,7 +6,7 @@
 import argparse
 import logging
 import os
-from typing import List, Optional
+from typing import List
 
 from dotenv import load_dotenv
 from utils import GPTClassifier, parse_gpt_response
@@ -39,14 +39,14 @@ for big, subs in BIG_CATEGORY_DICT.items():
         ALIAS_MAP[_norm(s)] = big
 
 # ───────────────── Helper ─────────────────
-def get_big_category_from_dict(cat: Optional[str]) -> Optional[str]:
+def get_big_category_from_dict(cat: str | None) -> str | None:
     """정규화 키로 바로 조회."""
     if not cat:
         return None
     return ALIAS_MAP.get(_norm(cat))
 
 # 이하 함수들은 그대로 ----------------------------------------------------------
-def classify_category(uuid: str, subcat: str, gpt: Optional[GPTClassifier]) -> str:
+def classify_category(uuid: str, subcat: str, gpt: GPTClassifier | None) -> str:
     big = get_big_category_from_dict(subcat)
     if big:
         return big
@@ -56,7 +56,7 @@ def classify_category(uuid: str, subcat: str, gpt: Optional[GPTClassifier]) -> s
     big = parse_gpt_response(resp).get("bigcategory", "").strip()
     return big or "기타"
 
-def classify_categories(uuid: str, subcats: List[str], gpt: Optional[GPTClassifier]) -> str:
+def classify_categories(uuid: str, subcats: List[str], gpt: GPTClassifier | None) -> str:
     big_list = [classify_category(uuid, s.strip(), gpt) for s in subcats if s.strip()]
     return "{" + ", ".join(f'"{b}"' for b in big_list) + "}" if big_list else "None"
 
