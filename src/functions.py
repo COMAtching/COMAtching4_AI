@@ -263,36 +263,36 @@ def preprocess_hobby(user_profile: dict) -> dict:
 """
 
 
-def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight, age_weight):
+def build_weighted_text_for_row(row, mbtiWeight, contactFrequencyWeight, hobbyWeight, ageWeight):
     text_tokens = []
 
     if row.get('mbti', None):
-        repeat_mbti = int(round(mbti_weight * 3))
+        repeat_mbti = int(round(mbtiWeight * 3))
         text_tokens += [row['mbti']] * repeat_mbti
 
     if row.get('contactFrequencyOption', None):
-        repeat_contact = int(round(contact_weight * 3))
+        repeat_contact = int(round(contactFrequencyWeight * 3))
         text_tokens += [row['contactFrequencyOption']] * repeat_contact
 
     if row.get('bigHobby', None):
         splitted = row['bigHobby'].split()
         unique_big_cats = set(splitted)
         for token in unique_big_cats:
-            repeat_hobby = int(round(hobby_weight * 3))
+            repeat_hobby = int(round(hobbyWeight * 3))
             text_tokens += [token] * repeat_hobby
 
     if row.get('ageOption', None):
-        repeat_age = int(round(age_weight * 3))
+        repeat_age = int(round(ageWeight * 3))
         text_tokens += [row['ageOption']] * repeat_age
 
     return " ".join(text_tokens).strip()
 
 
 def preprocess_for_cosine(filtered_df: pd.DataFrame,
-                          mbti_weight: float,
-                          contact_weight: float,
-                          hobby_weight: float,
-                          age_weight: float):
+                          mbtiWeight: float,
+                          contactFrequencyWeight: float,
+                          hobbyWeight: float,
+                          ageWeight: float):
     if filtered_df.empty:
         return None
 
@@ -311,7 +311,7 @@ def preprocess_for_cosine(filtered_df: pd.DataFrame,
             'ageOption': row.get('ageOption', "")
         }
         wtext = build_weighted_text_for_row(
-            pseudo_row, mbti_weight, contact_weight, hobby_weight, age_weight
+            pseudo_row, mbtiWeight, contactFrequencyWeight, hobbyWeight, ageWeight
         )
         weighted_texts.append(wtext)
 

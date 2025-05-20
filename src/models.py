@@ -18,7 +18,7 @@ class CosineSimilarityRecommender:
     def __init__(self):
         pass
 
-    def recommend(self, user_profile, data, mbti_weight, contact_weight, hobby_weight, age_weight, top_k=5):
+    def recommend(self, user_profile, data, mbtiWeight, contactFrequencyWeight, hobbyWeight, ageWeight, top_k=5):
         """
         user_profile: {'mbtiOption': ..., 'contactfrequencyOption': ..., 'bigHobbyOption': ..., 'ageOption': ...}
         data: {
@@ -41,10 +41,10 @@ class CosineSimilarityRecommender:
             'mbti': user_profile.get('mbtiOption', ""),
             'contactFrequencyOption': user_profile.get('contactfrequencyOption', ""),
             'bigHobby': user_profile.get('bigHobbyOption', ""),
-            'ageOption': user_profile.get('ageOption', "")  # ✅ 추가
+            'ageOption': user_profile.get('ageOption', "")
         }
         user_text = build_weighted_text_for_row(
-            pseudo_row, mbti_weight, contact_weight, hobby_weight, age_weight  # ✅ 수정
+            pseudo_row, mbtiWeight, contactFrequencyWeight, hobbyWeight, ageWeight
         )
 
         # 2) TF-IDF 변환

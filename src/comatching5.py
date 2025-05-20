@@ -54,16 +54,16 @@ def main():
     t0 = time.time()
     df = pd.read_csv(DATA_PATH, header=None)  # 헤더가 없다고 가정
     # 가중치 추출: 행 4 (인덱스 3), 열 I, J, K, L (인덱스 8~11)
-    mbti_weight = float(df.iloc[3, 8])      # 예: 0.3
-    contact_weight = float(df.iloc[3, 9])   # 예: 0.2
-    hobby_weight = float(df.iloc[3, 10])    # 예: 0.5
-    age_weight = float(df.iloc[3, 11])      # ✅ 추가
+    mbtiWeight = float(df.iloc[3, 8])      # 예: 0.3
+    contactFrequencyWeight = float(df.iloc[3, 9])   # 예: 0.2
+    hobbyWeight = float(df.iloc[3, 10])    # 예: 0.5
+    ageWeight = float(df.iloc[3, 11])      # 예: 0.1
 
     # 가중치 출력
-    print(f"MBTI Weight: {mbti_weight}")
-    print(f"Contact Weight: {contact_weight}")
-    print(f"Hobby Weight: {hobby_weight}")
-    print(f"Age Weight: {age_weight}")
+    print(f"MBTI Weight: {mbtiWeight}")
+    print(f"Contact Frequency Weight: {contactFrequencyWeight}")
+    print(f"Hobby Weight: {hobbyWeight}")
+    print(f"Age Weight: {ageWeight}")
 
     t1 = time.time()
     print(f"[3] CSV 불러오기 및 가중치 추출 소요 시간: {t1 - t0:.4f}초")
@@ -86,10 +86,10 @@ def main():
     t0 = time.time()
     cosine_data = preprocess_for_cosine(
         filtered_df,
-        mbti_weight=mbti_weight,
-        contact_weight=contact_weight,
-        hobby_weight=hobby_weight,
-        age_weight=age_weight  # ✅ 추가
+        mbtiWeight=mbtiWeight,
+        contactFrequencyWeight=contactFrequencyWeight,
+        hobbyWeight=hobbyWeight,
+        ageWeight=ageWeight
     )
     t1 = time.time()
     print(f"[6] 코사인 유사도 전처리 소요 시간: {t1 - t0:.4f}초")
@@ -100,10 +100,10 @@ def main():
     recommendations = cosine_model.recommend(
         user_profile,
         data=cosine_data,
-        mbti_weight=mbti_weight,
-        contact_weight=contact_weight,
-        hobby_weight=hobby_weight,
-        age_weight=age_weight,  # ✅ 추가
+        mbtiWeight=mbtiWeight,
+        contactFrequencyWeight=contactFrequencyWeight,
+        hobbyWeight=hobbyWeight,
+        ageWeight=ageWeight,
         top_k=1  # 추천 인원 수
     )
     t1 = time.time()
