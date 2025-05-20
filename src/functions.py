@@ -40,15 +40,10 @@ BIG_CATEGORY_DICT = {
 
 
 def map_small_to_big(hobby: str, big_dict: dict) -> str:
-    """
-    개별 소분류 취미(hobby)에 대해
-    어떤 대분류(big category)에 속해 있는지 찾아서 그 카테고리명을 반환.
-    만약 어느 대분류에도 속하지 않으면 빈 문자열("")을 반환.
-    """
     for big_cat, small_list in big_dict.items():
         if hobby in small_list:
             return big_cat
-    return ""  # 못 찾으면 ""
+    return ""
 
 
 # -----------------------------------------------------------
@@ -268,30 +263,27 @@ def preprocess_hobby(user_profile: dict) -> dict:
 """
 
 
-def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight):
-    """
-    - 대분류 취미(bigHobby)가 여러 번 등장해도, set()으로 중복 제거하여 한 번만 반영.
-    - 기타 로직(MBTI, 연락빈도)은 동일.
-    """
+def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight, age_weight):
     text_tokens = []
 
-    # MBTI
     if row.get('mbti', None):
         repeat_mbti = int(round(mbti_weight * 3))
         text_tokens += [row['mbti']] * repeat_mbti
 
-    # 연락빈도
     if row.get('contactFrequencyOption', None):
         repeat_contact = int(round(contact_weight * 3))
         text_tokens += [row['contactFrequencyOption']] * repeat_contact
 
-    # 대분류 취미 (중복 제거)
     if row.get('bigHobby', None):
-        splitted = row['bigHobby'].split()  # 예: "여행 여행 예술"
-        unique_big_cats = set(splitted)     # 중복 제거
+        splitted = row['bigHobby'].split()
+        unique_big_cats = set(splitted)
         for token in unique_big_cats:
             repeat_hobby = int(round(hobby_weight * 3))
             text_tokens += [token] * repeat_hobby
+
+    if row.get('ageOption', None):
+        repeat_age = int(round(age_weight * 3))
+        text_tokens += [row['ageOption']] * repeat_age
 
     return " ".join(text_tokens).strip()
 
@@ -299,32 +291,31 @@ def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight):
 def preprocess_for_cosine(filtered_df: pd.DataFrame,
                           mbti_weight: float,
                           contact_weight: float,
-                          hobby_weight: float):
-    """
-    코사인 유사도 전처리
-    - MBTI, 연락빈도, 대분류 취미만 사용 -> weighted_text로 TF-IDF
-    """
+                          hobby_weight: float,
+                          age_weight: float):
     if filtered_df.empty:
         return None
 
-    # bigHobby 컬럼이 없을 수 있으니 기본값 ""
     if 'bigHobby' not in filtered_df.columns:
         filtered_df['bigHobby'] = ""
+
+    if 'ageOption' not in filtered_df.columns:
+        filtered_df['ageOption'] = ""
 
     weighted_texts = []
     for idx, row in filtered_df.iterrows():
         pseudo_row = {
             'mbti': row.get('mbti', ""),
             'contactFrequencyOption': row.get('contactFrequencyOption', ""),
-            'bigHobby': row.get('bigHobby', "")
+            'bigHobby': row.get('bigHobby', ""),
+            'ageOption': row.get('ageOption', "")
         }
         wtext = build_weighted_text_for_row(
-            pseudo_row, mbti_weight, contact_weight, hobby_weight
+            pseudo_row, mbti_weight, contact_weight, hobby_weight, age_weight
         )
         weighted_texts.append(wtext)
 
     filtered_df['weighted_text'] = weighted_texts
-
     tfidf = TfidfVectorizer()
     tfidf_matrix = tfidf.fit_transform(filtered_df['weighted_text'])
 
