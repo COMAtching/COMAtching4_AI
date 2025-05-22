@@ -1,10 +1,8 @@
 # src/functions.py
-
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 import argparse
-from typing import Optional
 
 """
 1) 유저 프로필 생성 함수
@@ -42,14 +40,10 @@ BIG_CATEGORY_DICT = {
 
 
 def map_small_to_big(hobby: str, big_dict: dict) -> str:
-    """
-    개별 소분류 취미(hobby)에 대해
-    어떤 대분류(big category)에 속해 있는지 찾아서 그 카테고리명을 반환.
-    """
     for big_cat, small_list in big_dict.items():
         if hobby in small_list:
             return big_cat
-    return ""  # 못 찾으면 ""
+    return ""
 
 
 # -----------------------------------------------------------
@@ -151,10 +145,6 @@ def convert_hobbies_discard_unmatched(filtered_df: pd.DataFrame, user_profile: d
         for small_hobby in split_hobbies:
             big_cat = map_small_to_big(small_hobby, BIG_CATEGORY_DICT)
             if big_cat == "":
-                # 매핑 불가 소분류는 버리거나(여기서는 버리지 않고 GPT용으로 남길 수도 있음)
-                # 여기서는 "뽑는 사람"이므로 GPT agent에 넘길 거라면 그대로 두거나
-                # 만약 요구사항대로 "버리진 않고 GPT agent에 넘긴다"면 아래 continue 없이 append
-                # 이 부분은 요구사항에 따라 구현
                 continue
             else:
                 converted_list.append(big_cat)
@@ -169,6 +159,7 @@ def create_user_profile(df: pd.DataFrame) -> dict:
     유저 프로필 생성
     - 0행(인덱스 이름들), 1행(해당 값) 파악 -> user_profile dict
     - MBTI를 4글자로 정제
+    - myAge가 존재하고 age가 비어 있다면 age에 복사
     """
     # 0행, 1행
     indices = df.iloc[0].tolist()
@@ -184,6 +175,10 @@ def create_user_profile(df: pd.DataFrame) -> dict:
     if mbti_raw:
         cleaned_mbti = mbti_raw.replace(",", "").replace(" ", "")
         user_profile['mbtiOption'] = cleaned_mbti
+
+    # (추가) myAge → age 매핑
+    if user_profile.get('myAge') and not user_profile.get('age'):
+        user_profile['age'] = user_profile['myAge']
 
     return user_profile
 
@@ -226,12 +221,12 @@ def filter_data(df: pd.DataFrame, user_profile: dict) -> pd.DataFrame:
         filtered_df = filtered_df[filtered_df['major'] != user_major]
 
     # 나이필터링 (ageOption: OLDER/YOUNGER/EQUAL)
-    # - user_profile['age']가 실제 숫자(또는 문자열)로 존재한다고 가정
-    # - filtered_df['age']도 숫자 변환 가능해야 함
-    user_age = user_profile.get('age', None)  # 예: "20"
+    # age가 없으면 myAge 사용
+    user_age_val = user_profile.get('age') or user_profile.get('myAge')
     age_option = user_profile.get('ageOption', "").upper()  # OLDER/YOUNGER/EQUAL
-    if user_age and str(user_age).isdigit():
-        user_age_int = int(user_age)
+
+    if user_age_val and str(user_age_val).isdigit():
+        user_age_int = int(user_age_val)
         filtered_df['age'] = filtered_df['age'].astype(int)  # 형변환
         if age_option == 'OLDER':
             filtered_df = filtered_df[filtered_df['age'] > user_age_int]
@@ -267,63 +262,60 @@ def preprocess_hobby(user_profile: dict) -> dict:
  - 나이는 사용하지 않고, MBTI / 연락빈도 / (GPT 결과) 대분류 취미만 사용
 """
 
-def build_weighted_text_for_row(row, mbti_weight, contact_weight, hobby_weight):
-    """
-    - 대분류 취미(bigHobby)가 여러 번 등장해도, set()으로 중복 제거하여 한 번만 반영.
-    - 기타 로직(MBTI, 연락빈도)은 동일.
-    """
+
+def build_weighted_text_for_row(row, mbtiWeight, contactFrequencyWeight, hobbyWeight, ageWeight):
     text_tokens = []
 
-    # MBTI
     if row.get('mbti', None):
-        repeat_mbti = int(round(mbti_weight * 3))
+        repeat_mbti = int(round(mbtiWeight * 3))
         text_tokens += [row['mbti']] * repeat_mbti
 
-    # 연락빈도
     if row.get('contactFrequencyOption', None):
-        repeat_contact = int(round(contact_weight * 3))
+        repeat_contact = int(round(contactFrequencyWeight * 3))
         text_tokens += [row['contactFrequencyOption']] * repeat_contact
 
-    # 대분류 취미 (중복 제거)
     if row.get('bigHobby', None):
-        splitted = row['bigHobby'].split()  # 예: "여행 여행 예술"
-        unique_big_cats = set(splitted)     # 중복 제거
+        splitted = row['bigHobby'].split()
+        unique_big_cats = set(splitted)
         for token in unique_big_cats:
-            repeat_hobby = int(round(hobby_weight * 3))
+            repeat_hobby = int(round(hobbyWeight * 3))
             text_tokens += [token] * repeat_hobby
+
+    if row.get('ageOption', None):
+        repeat_age = int(round(ageWeight * 3))
+        text_tokens += [row['ageOption']] * repeat_age
 
     return " ".join(text_tokens).strip()
 
 
 def preprocess_for_cosine(filtered_df: pd.DataFrame,
-                          mbti_weight: float,
-                          contact_weight: float,
-                          hobby_weight: float) -> Optional[dict]:
-    """
-    코사인 유사도 전처리
-    - MBTI, 연락빈도, 대분류 취미만 사용 -> weighted_text로 TF-IDF
-    """
+                          mbtiWeight: float,
+                          contactFrequencyWeight: float,
+                          hobbyWeight: float,
+                          ageWeight: float):
     if filtered_df.empty:
         return None
 
-    # bigHobby 컬럼이 없을 수 있으니 기본값 ""
     if 'bigHobby' not in filtered_df.columns:
         filtered_df['bigHobby'] = ""
+
+    if 'ageOption' not in filtered_df.columns:
+        filtered_df['ageOption'] = ""
 
     weighted_texts = []
     for idx, row in filtered_df.iterrows():
         pseudo_row = {
             'mbti': row.get('mbti', ""),
             'contactFrequencyOption': row.get('contactFrequencyOption', ""),
-            'bigHobby': row.get('bigHobby', "")
+            'bigHobby': row.get('bigHobby', ""),
+            'ageOption': row.get('ageOption', "")
         }
         wtext = build_weighted_text_for_row(
-            pseudo_row, mbti_weight, contact_weight, hobby_weight
+            pseudo_row, mbtiWeight, contactFrequencyWeight, hobbyWeight, ageWeight
         )
         weighted_texts.append(wtext)
 
     filtered_df['weighted_text'] = weighted_texts
-
     tfidf = TfidfVectorizer()
     tfidf_matrix = tfidf.fit_transform(filtered_df['weighted_text'])
 
